@@ -22,6 +22,14 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 36
+          target: android-36
+          build-tools: 36.0.0
+          cache: gradle
+
       - name: Cache Gradle
         uses: actions/cache@v3
         with:
@@ -29,12 +37,6 @@ jobs:
             ~/.gradle/caches
             ~/.gradle/wrapper
           key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}-${{ runner.os }}
-
-      - name: Download Android SDK components
-        run: |
-          sudo mkdir -p $ANDROID_SDK_ROOT
-          sudo chown -R $USER $ANDROID_SDK_ROOT
-          yes | sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platforms;android-36" "build-tools;36.0.0"
 
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug --no-daemon
