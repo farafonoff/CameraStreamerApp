@@ -24,6 +24,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import android.util.Range
@@ -115,6 +116,9 @@ class CameraStreamService : Service() {
     private var codecConfig: ByteArray? = null
     private var encoderCallbackThread: HandlerThread? = null
     private var encoderCallbackHandler: Handler? = null
+    private val restartHandler = Handler(Looper.getMainLooper())
+    private var restartAttempt = 0
+    private val restartDelayMs = 2000L
 
     private lateinit var wakeLock: PowerManager.WakeLock
     private var selectedLensFacing = CameraCharacteristics.LENS_FACING_BACK
@@ -404,15 +408,33 @@ class CameraStreamService : Service() {
     @SuppressLint("WakelockTimeout")
     private fun startStreaming() {
         if (!streaming.compareAndSet(false, true)) return
+        restartHandler.removeCallbacksAndMessages(null)
         if (!wakeLock.isHeld) wakeLock.acquire()
         if (!configureEncoder()) {
-            Log.w(TAG, "Encoder could not be configured, cancelling stream")
+            Log.w(TAG, "Encoder could not be configured, scheduling restart")
             stopStreaming()
+            scheduleRestart()
             return
         }
-        openCamera()
-        refreshNotification()
-        sendStatusUpdate()
+        try {
+            openCamera()
+            refreshNotification()
+            sendStatusUpdate()
+        } catch (ex: Exception) {
+            Log.w(TAG, "Streaming failed to initialize", ex)
+            stopStreaming()
+            scheduleRestart()
+        }
+    }
+
+    private fun scheduleRestart() {
+        restartHandler.removeCallbacksAndMessages(null)
+        restartHandler.postDelayed({
+            if (!streaming.get()) {
+                Log.i(TAG, "Retrying streaming (attempt)")
+                startStreaming()
+            }
+        }, restartDelayMs)
     }
 
     private fun stopStreaming() {
