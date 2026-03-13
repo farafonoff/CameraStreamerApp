@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       JAVA_HOME: /usr/lib/jvm/adoptopenjdk-17-hotspot
-      ANDROID_SDK_ROOT: /usr/local/android-sdk
+      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
