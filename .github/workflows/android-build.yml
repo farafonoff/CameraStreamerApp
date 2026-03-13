@@ -53,6 +53,8 @@ jobs:
     env:
       JAVA_HOME: /usr/lib/jvm/adoptopenjdk-17-hotspot
       ANDROID_SDK_ROOT: /tmp/android-sdk
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
